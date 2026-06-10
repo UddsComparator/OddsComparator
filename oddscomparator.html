@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OddsComparator - Comparador de Cuotas</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; color: #222; }
+
+    .header {
+      background: #1a1a2e;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { font-size: 22px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .logo-dot { width: 12px; height: 12px; border-radius: 50%; background: #1D9E75; }
+    .logo-sub { font-size: 11px; color: #aaa; font-weight: normal; margin-top: 2px; }
+    .status-bar { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #aaa; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #e74c3c; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .filters {
+      background: #fff;
+      padding: 10px 20px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .filters.row2 { background: #f9f9f9; }
+    .filters span { font-size: 13px; color: #666; margin-right: 4px; }
+    .filter-btn {
+      font-size: 12px; padding: 5px 14px; border-radius: 20px;
+      border: 1px solid #ccc; background: #fff; color: #555; cursor: pointer; transition: all 0.15s;
+    }
+    .filter-btn.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+    .filter-btn:hover:not(.active) { background: #f0f0f0; }
+    .filter-btn.book-active { background: #1565C0; color: #fff; border-color: #1565C0; }
+
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 10px; padding: 12px 20px;
+      background: #fff; border-bottom: 1px solid #e0e0e0;
+    }
+    .stat { background: #f9f9f9; border-radius: 8px; padding: 10px 14px; text-align: center; }
+    .stat-num { font-size: 22px; font-weight: bold; color: #222; }
+    .stat-num.green { color: #1D9E75; }
+    .stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+
+    .legend {
+      background: #fff; padding: 10px 20px;
+      display: flex; gap: 20px; align-items: center;
+      border-bottom: 1px solid #e0e0e0; flex-wrap: wrap;
+    }
+    .legend-title { font-size: 12px; font-weight: bold; color: #555; margin-right: 4px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
+    .legend-box { width: 16px; height: 16px; border-radius: 4px; }
+    .leg-blue  { background: #1565C0; }
+    .leg-green { background: #1D9E75; }
+    .leg-diff-green { background: #e1f5ee; border: 1px solid #1D9E75; color: #0F6E56; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+    .leg-diff-amber { background: #faeeda; border: 1px solid #EF9F27; color: #854F0B; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+    .leg-diff-red   { background: #fcebeb; border: 1px solid #e74c3c; color: #A32D2D; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+
+    .table-header {
+      display: grid;
+      grid-template-columns: 2.2fr 1.4fr 1.4fr 0.9fr;
+      padding: 8px 20px;
+      background: #eaeaea;
+      font-size: 11px; color: #555; font-weight: bold;
+      border-bottom: 1px solid #ddd; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    .col-media {
+      background: #E3F0FC; border-left: 3px solid #1565C0;
+      padding: 6px 10px; border-radius: 6px;
+    }
+    .col-media .col-label { font-size: 10px; font-weight: bold; color: #1565C0; text-transform: uppercase; margin-bottom: 2px; }
+    .col-media .col-odd   { font-size: 17px; font-weight: bold; color: #1565C0; }
+    .col-media .col-sub   { font-size: 10px; color: #5a8fc4; margin-top: 1px; }
+
+    .col-casa {
+      background: #E1F5EE; border-left: 3px solid #1D9E75;
+      padding: 6px 10px; border-radius: 6px;
+    }
+    .col-casa .col-label { font-size: 10px; font-weight: bold; color: #0F6E56; text-transform: uppercase; margin-bottom: 2px; }
+    .col-casa .col-odd   { font-size: 17px; font-weight: bold; color: #0F6E56; }
+    .col-casa .col-sub   { font-size: 10px; color: #3a9e75; margin-top: 1px; }
+
+    .arb-row {
+      display: grid;
+      grid-template-columns: 2.2fr 1.4fr 1.4fr 0.9fr;
+      padding: 10px 20px; align-items: center; gap: 10px;
+      border-bottom: 1px solid #eee; background: #fff; transition: background 0.1s;
+    }
+    .arb-row:hover { background: #fafafa; }
+    .arb-row.highlight { border-left: 4px solid #1D9E75; }
+    .arb-row.warning   { border-left: 4px solid #EF9F27; }
+    .arb-row.danger    { border-left: 4px solid #e74c3c; }
+
+    .event-name   { font-size: 13px; font-weight: bold; color: #222; }
+    .event-league { font-size: 11px; color: #888; margin-top: 2px; }
+    .event-time   { font-size: 11px; color: #aaa; margin-top: 1px; }
+
+    .diff-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .badge { display: inline-block; font-size: 13px; padding: 3px 12px; border-radius: 12px; font-weight: bold; }
+    .badge-green { background: #e1f5ee; color: #0F6E56; border: 1px solid #1D9E75; }
+    .badge-amber { background: #faeeda; color: #854F0B; border: 1px solid #EF9F27; }
+    .badge-red   { background: #fcebeb; color: #A32D2D; border: 1px solid #e74c3c; }
+    .diff-explain { font-size: 10px; color: #888; }
+
+    .section-title {
+      padding: 10px 20px 6px; font-size: 12px; font-weight: bold; color: #444;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      background: #f5f5f5; border-bottom: 1px solid #e0e0e0;
+    }
+    .refresh-btn {
+      padding: 6px 14px; border-radius: 6px;
+      border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer; font-size: 12px;
+    }
+    .refresh-btn:hover { background: #2a2a4a; }
+    .loading, .error { text-align: center; padding: 3rem; font-size: 15px; color: #888; }
+    .error { color: #c0392b; }
+    .no-data { font-size: 11px; color: #bbb; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<!-- CABECERA -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <div>
+      OddsComparator
+      <div class="logo-sub">Comparador de cuotas · Detección de errores en tiempo real</div>
+    </div>
+  </div>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <div class="status-bar">
+      <div class="live-dot"></div>
+      <span id="update-time">Actualizando...</span>
+    </div>
+    <button class="refresh-btn" onclick="loadData()">&#8635; Actualizar</button>
+  </div>
+</div>
+
+<!-- FILTRO 1: DEPORTE Y DISCREPANCIA -->
+<div class="filters">
+  <span>Deporte:</span>
+  <button class="filter-btn active" onclick="filterSport('all', this)">Todos</button>
+  <button class="filter-btn" onclick="filterSport('soccer', this)">Fútbol</button>
+  <button class="filter-btn" onclick="filterSport('tennis', this)">Tenis</button>
+  <span style="margin-left:12px;">Discrepancia mínima:</span>
+  <button class="filter-btn active" onclick="filterMinDiff(0, this)">Todas</button>
+  <button class="filter-btn" onclick="filterMinDiff(3, this)">+3%</button>
+  <button class="filter-btn" onclick="filterMinDiff(5, this)">+5%</button>
+  <button class="filter-btn" onclick="filterMinDiff(10, this)">+10%</button>
+</div>
+
+<!-- FILTRO 2: CASA DE APUESTAS -->
+<div class="filters row2">
+  <span>Comparar media con:</span>
+  <button class="filter-btn book-active" onclick="filterBook('all', this)">Todas las casas</button>
+  <button class="filter-btn" onclick="filterBook('Bet365', this)">Bet365</button>
+  <button class="filter-btn" onclick="filterBook('Betfair', this)">Betfair</button>
+  <button class="filter-btn" onclick="filterBook('William Hill', this)">William Hill</button>
+  <button class="filter-btn" onclick="filterBook('888sport', this)">888sport</button>
+  <button class="filter-btn" onclick="filterBook('Bwin', this)">Bwin</button>
+  <button class="filter-btn" onclick="filterBook('Unibet', this)">Unibet</button>
+  <button class="filter-btn" onclick="filterBook('Betsson', this)">Betsson</button>
+  <button class="filter-btn" onclick="filterBook('Nordic Bet', this)">Nordic Bet</button>
+</div>
+
+<!-- LEYENDA -->
+<div class="legend">
+  <span class="legend-title">Cómo leer la tabla:</span>
+  <div class="legend-item"><div class="legend-box leg-blue"></div><span><strong>Azul = Media del mercado</strong> — cuota justa calculada entre todas las casas</span></div>
+  <div class="legend-item"><div class="legend-box leg-green"></div><span><strong>Verde = Casa seleccionada</strong> — cuota de la casa que estás comparando</span></div>
+  <div class="legend-item"><span class="leg-diff-green">+2%</span><span>Diferencia baja</span></div>
+  <div class="legend-item"><span class="leg-diff-amber">+5%</span><span>Discrepancia interesante</span></div>
+  <div class="legend-item"><span class="leg-diff-red">+10%</span><span>Error de cuota — ¡aprovechar!</span></div>
+</div>
+
+<!-- ESTADÍSTICAS -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" id="stat-events">—</div><div class="stat-label">Eventos analizados</div></div>
+  <div class="stat"><div class="stat-num green" id="stat-arbs">—</div><div class="stat-label">Errores detectados (+3%)</div></div>
+  <div class="stat"><div class="stat-num green" id="stat-max">—</div><div class="stat-label">Mayor discrepancia</div></div>
+  <div class="stat"><div class="stat-num" id="stat-books">—</div><div class="stat-label">Casas comparadas</div></div>
+</div>
+
+<!-- CONTENIDO -->
+<div id="content">
+  <div class="loading">Conectando con la API y calculando media del mercado...</div>
+</div>
+
+<script>
+  const API_KEY = '830cafa94d5be7b3f347c27e837c1bd9';
+
+  const LIGAS = [
+    'soccer_spain_la_liga',
+    'soccer_spain_segunda_division',
+    'soccer_epl',
+    'soccer_germany_bundesliga',
+    'soccer_italy_serie_a',
+    'soccer_france_ligue_one',
+    'soccer_uefa_champs_league'
+  ];
+
+  let rawEvents = [];   // datos crudos de la API guardados para re-filtrar sin nueva petición
+  let allData   = [];   // datos procesados
+  let currentSport   = 'all';
+  let currentMinDiff = 0;
+  let currentBook    = 'all';
+
+  // =============================================
+  // PROCESAR DATOS
+  // =============================================
+  function processOdds(events) {
+    const results = [];
+    const bookmakers = new Set();
+
+    events.forEach(event => {
+      const sportType = getSportType(event.sport_key);
+      let allOdds = {};   // {equipo: [{price, book}]}
+      let byBook  = {};   // {nombreCasa: {equipo: price}}
+
+      event.bookmakers.forEach(bk => {
+        bookmakers.add(bk.title);
+        const market = bk.markets.find(m => m.key === 'h2h');
+        if (!market) return;
+        if (!byBook[bk.title]) byBook[bk.title] = {};
+        market.outcomes.forEach(o => {
+          if (!allOdds[o.name]) allOdds[o.name] = [];
+          allOdds[o.name].push({ price: o.price, book: bk.title });
+          byBook[bk.title][o.name] = o.price;
+        });
+      });
+
+      const teams = Object.keys(allOdds);
+      if (teams.length === 0) return;
+
+      // Media del mercado por equipo (columna azul)
+      let mediaOdds = {};
+      teams.forEach(t => {
+        const precios = allOdds[t].map(x => x.price);
+        mediaOdds[t] = parseFloat((precios.reduce((a,b) => a+b, 0) / precios.length).toFixed(3));
+      });
+
+      // Mejor cuota general por equipo
+      let bestOdds = {};
+      teams.forEach(t => {
+        const sorted = [...allOdds[t]].sort((a,b) => b.price - a.price);
+        bestOdds[t] = sorted[0];
+      });
+
+      // Cuota de la casa seleccionada (columna verde)
+      let selectedOdds = {};
+      teams.forEach(t => {
+        if (currentBook === 'all') {
+          selectedOdds[t] = bestOdds[t];
+        } else {
+          // Buscar la casa con match flexible
+          const matchedBook = Object.keys(byBook).find(b =>
+            b.toLowerCase().includes(currentBook.toLowerCase()) ||
+            currentBook.toLowerCase().includes(b.toLowerCase())
+          );
+          if (matchedBook && byBook[matchedBook][t]) {
+            selectedOdds[t] = { price: byBook[matchedBook][t], book: matchedBook };
+          }
+        }
+      });
+
+      // Calcular discrepancia máxima
+      let maxDiff = 0;
+      let diffTeam = '';
+      teams.forEach(t => {
+        const media = mediaOdds[t];
+        const sel   = selectedOdds[t];
+        if (!media || !sel || media === 0) return;
+        const diff = ((sel.price - media) / media) * 100;
+        if (diff > maxDiff) { maxDiff = diff; diffTeam = t; }
+      });
+
+      if (!diffTeam && teams.length > 0) diffTeam = teams[0];
+
+      results.push({
+        home: event.home_team,
+        away: event.away_team,
+        sport: sportType,
+        sport_title: event.sport_title,
+        commence: event.commence_time,
+        mediaOdds,
+        selectedOdds,
+        bestOdds,
+        allOdds,
+        maxDiff,
+        diffTeam,
+        numBooks: event.bookmakers.length
+      });
+    });
+
+    results.sort((a,b) => b.maxDiff - a.maxDiff);
+    return { results, bookmakers: bookmakers.size };
+  }
+
+  // =============================================
+  // AUXILIARES
+  // =============================================
+  function getSportType(key) {
+    if (key.startsWith('soccer'))         return 'soccer';
+    if (key.startsWith('tennis'))         return 'tennis';
+    if (key.startsWith('cricket'))        return 'cricket';
+    if (key.startsWith('baseball'))       return 'baseball';
+    return 'other';
+  }
+
+  function formatTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })
+      + ' · ' + d.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit' });
+  }
+
+  function getDiffClass(diff) {
+    if (diff >= 10) return 'badge-red';
+    if (diff >= 5)  return 'badge-amber';
+    return 'badge-green';
+  }
+
+  function getDiffText(diff) {
+    if (diff >= 10) return '¡Error de cuota! Aprovechar';
+    if (diff >= 5)  return 'Discrepancia alta';
+    if (diff >= 3)  return 'Discrepancia media';
+    return 'Diferencia baja';
+  }
+
+  // =============================================
+  // RENDERIZAR TABLA
+  // =============================================
+  function renderTable(data) {
+    const filtered = data.filter(d => {
+      if (currentSport !== 'all' && d.sport !== currentSport) return false;
+      if (d.maxDiff < currentMinDiff) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      document.getElementById('content').innerHTML =
+        '<div class="loading">No se encontraron discrepancias con los filtros aplicados.</div>';
+      return;
+    }
+
+    const soccer = filtered.filter(d => d.sport === 'soccer');
+    const others  = filtered.filter(d => d.sport !== 'soccer');
+    let html = '';
+    if (currentSport === 'all') {
+      if (soccer.length > 0) html += renderSection(soccer, '⚽ Fútbol');
+      if (others.length  > 0) html += renderSection(others,  '🏆 Otros deportes');
+    } else {
+      html = renderSection(filtered, filtered[0] ? filtered[0].sport_title : 'Resultados');
+    }
+    document.getElementById('content').innerHTML = html;
+  }
+
+  function renderSection(events, title) {
+    const casaLabel = currentBook === 'all' ? 'Mejor cuota disponible' : currentBook;
+    let s = `<div class="section-title">${title}</div>`;
+    s += `<div class="table-header">
+      <div>Evento</div>
+      <div>📘 Media del mercado (referencia)</div>
+      <div>📗 ${casaLabel}</div>
+      <div>Discrepancia</div>
+    </div>`;
+
+    events.forEach(d => {
+      const media  = d.mediaOdds[d.diffTeam];
+      const selOdd = d.selectedOdds[d.diffTeam];
+      const rowClass = d.maxDiff >= 10 ? 'danger' : d.maxDiff >= 5 ? 'highlight' : d.maxDiff >= 2 ? 'warning' : '';
+      const numCasas = d.allOdds[d.diffTeam] ? d.allOdds[d.diffTeam].length : 0;
+
+      const colMedia = media
+        ? `<div class="col-media">
+            <div class="col-label">Media · ${d.diffTeam}</div>
+            <div class="col-odd">${media.toFixed(2)}</div>
+            <div class="col-sub">Calculada sobre ${numCasas} casa${numCasas !== 1 ? 's' : ''}</div>
+           </div>`
+        : `<span class="no-data">Sin datos</span>`;
+
+      const colCasa = selOdd
+        ? `<div class="col-casa">
+            <div class="col-label">${selOdd.book} · ${d.diffTeam}</div>
+            <div class="col-odd">${selOdd.price.toFixed(2)}</div>
+            <div class="col-sub">${currentBook === 'all' ? 'Mejor cuota disponible' : 'Cuota de ' + selOdd.book}</div>
+           </div>`
+        : `<span class="no-data">${currentBook === 'all' ? 'Sin datos' : currentBook + ' no disponible'}</span>`;
+
+      s += `<div class="arb-row ${rowClass}">
+        <div>
+          <div class="event-name">${d.home} vs ${d.away}</div>
+          <div class="event-league">${d.sport_title} · ${d.numBooks} casas analizadas</div>
+          <div class="event-time">🕐 ${formatTime(d.commence)}</div>
+        </div>
+        ${colMedia}
+        ${colCasa}
+        <div class="diff-cell">
+          <span class="badge ${getDiffClass(d.maxDiff)}">+${d.maxDiff.toFixed(1)}%</span>
+          <span class="diff-explain">${getDiffText(d.maxDiff)}</span>
+        </div>
+      </div>`;
+    });
+    return s;
+  }
+
+  // =============================================
+  // ESTADÍSTICAS
+  // =============================================
+  function updateStats(results, numBooks) {
+    document.getElementById('stat-events').textContent = results.length;
+    document.getElementById('stat-arbs').textContent   = results.filter(r => r.maxDiff >= 3).length;
+    const max = results.length > 0 ? Math.max(...results.map(r => r.maxDiff)) : 0;
+    document.getElementById('stat-max').textContent    = max > 0 ? '+' + max.toFixed(1) + '%' : '—';
+    document.getElementById('stat-books').textContent  = numBooks;
+  }
+
+  // =============================================
+  // CARGAR API
+  // =============================================
+  async function loadData() {
+    document.getElementById('update-time').textContent = 'Actualizando...';
+    document.getElementById('content').innerHTML = '<div class="loading">Conectando con la API y calculando media del mercado...</div>';
+    try {
+      const peticiones = LIGAS.map(liga =>
+        fetch(`https://api.the-odds-api.com/v4/sports/${liga}/odds/?regions=eu,uk&markets=h2h&apiKey=${API_KEY}`)
+          .then(r => r.ok ? r.json() : [])
+          .catch(() => [])
+      );
+      const respuestas = await Promise.all(peticiones);
+      rawEvents = respuestas.flat();
+
+      if (rawEvents.length === 0) {
+        document.getElementById('content').innerHTML =
+          '<div class="error">❌ No se obtuvieron datos. Puede que no haya partidos disponibles o se hayan agotado las peticiones del plan gratuito.</div>';
+        return;
+      }
+
+      reprocess();
+      const now = new Date();
+      document.getElementById('update-time').textContent =
+        'Actualizado a las ' + now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+    } catch(e) {
+      document.getElementById('content').innerHTML =
+        '<div class="error">❌ Error al conectar con la API.</div>';
+    }
+  }
+
+  // Reprocesar sin nueva llamada a la API (para filtros)
+  function reprocess() {
+    const { results, bookmakers } = processOdds(rawEvents);
+    allData = results;
+    updateStats(results, bookmakers);
+    renderTable(results);
+  }
+
+  // =============================================
+  // FILTROS
+  // =============================================
+  function filterSport(sport, btn) {
+    currentSport = sport;
+    document.querySelectorAll('.filters:not(.row2) .filter-btn').forEach(b => {
+      if (['Todos','Fútbol','Tenis'].includes(b.textContent)) b.classList.remove('active');
+    });
+    btn.classList.add('active');
+    renderTable(allData);
+  }
+
+  function filterMinDiff(val, btn) {
+    currentMinDiff = val;
+    document.querySelectorAll('.filters:not(.row2) .filter-btn').forEach(b => {
+      if (['Todas','+3%','+5%','+10%'].includes(b.textContent)) b.classList.remove('active');
+    });
+    btn.classList.add('active');
+    renderTable(allData);
+  }
+
+  function filterBook(book, btn) {
+    currentBook = book;
+    document.querySelectorAll('.filters.row2 .filter-btn').forEach(b => b.classList.remove('book-active'));
+    btn.classList.add('book-active');
+    // Reprocesar para recalcular discrepancias con la nueva casa seleccionada
+    reprocess();
+  }
+
+  // Cargar al inicio y refrescar cada 2 minutos (para ahorrar peticiones del plan gratuito)
+  loadData();
+  setInterval(loadData, 120000);
+</script>
+
+</body>
+</html>
